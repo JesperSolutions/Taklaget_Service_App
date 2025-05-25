@@ -1,0 +1,53 @@
+{
+  "name": "roof-inspection-api",
+  "version": "1.0.0",
+  "description": "API for managing roof inspection reports",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev:api": "nodemon src/server.js",
+    "dev:client": "vite",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:client\"",
+    "build": "tsc && vite build",
+    "lint": "eslint .",
+    "seed": "node prisma/seed.js",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@prisma/client": "5.14.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "lucide-react": "^0.363.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.22.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "autoprefixer": "^10.4.18",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
+    "postcss": "^8.4.35",
+    "prisma": "5.14.0",
+    "supertest": "^6.3.4",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.5"
+  }
+}

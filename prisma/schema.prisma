@@ -1,0 +1,115 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Parent group that owns multiple companies
+model ParentGroup {
+  id        String    @id @default(uuid())
+  name      String
+  code      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  companies Company[]
+}
+
+// Company that performs inspections
+model Company {
+  id           String        @id @default(uuid())
+  name         String
+  code         String        @unique
+  address      String?
+  phone        String?
+  email        String?
+  parentGroup  ParentGroup   @relation(fields: [parentGroupId], references: [id])
+  parentGroupId String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  departments  Department[]
+  inspectors   Inspector[]
+  reports      Report[]
+}
+
+// Department within a company
+model Department {
+  id        String    @id @default(uuid())
+  name      String
+  code      String
+  company   Company   @relation(fields: [companyId], references: [id])
+  companyId String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  reports   Report[]
+
+  @@unique([companyId, code])
+}
+
+// Inspector who performs roof inspections
+model Inspector {
+  id        String    @id @default(uuid())
+  name      String
+  code      String
+  email     String?
+  phone     String?
+  company   Company   @relation(fields: [companyId], references: [id])
+  companyId String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  reports   Report[]
+
+  @@unique([companyId, code])
+}
+
+// Customer who receives the inspection
+model Customer {
+  id        String    @id @default(uuid())
+  name      String
+  address   String
+  city      String
+  state     String?
+  zipCode   String
+  phone     String?
+  email     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  reports   Report[]
+}
+
+// Report generated from an inspection
+model Report {
+  id            String         @id @default(uuid())
+  reportCode    String         @unique
+  inspectionDate DateTime
+  notes         String?
+  status        String         @default("DRAFT")
+  inspector     Inspector      @relation(fields: [inspectorId], references: [id])
+  inspectorId   String
+  company       Company        @relation(fields: [companyId], references: [id])
+  companyId     String
+  department    Department     @relation(fields: [departmentId], references: [id])
+  departmentId  String
+  customer      Customer       @relation(fields: [customerId], references: [id])
+  customerId    String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  images        ReportImage[]
+}
+
+// Images attached to a report
+model ReportImage {
+  id        String    @id @default(uuid())
+  filename  String
+  path      String
+  mimetype  String
+  size      Int
+  report    Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
