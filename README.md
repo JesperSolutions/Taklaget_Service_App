@@ -82,9 +82,113 @@ The application will be available at:
 
 ### Production Mode
 
+1. Build the frontend:
 ```bash
-npm start
+npm run build
 ```
+
+2. Start with PM2:
+```bash
+npm run pm2:start
+```
+
+To stop the application:
+```bash
+npm run pm2:stop
+```
+
+## Production Deployment
+
+### Server Requirements
+
+- Ubuntu 20.04 or higher
+- Node.js 20.x
+- Nginx
+- PM2 (installed globally)
+- Let's Encrypt SSL (recommended)
+
+### Deployment Steps
+
+1. Install required software:
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 20.x
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install Nginx
+sudo apt install -y nginx
+
+# Install PM2 globally
+sudo npm install -g pm2
+```
+
+2. Set up the project:
+```bash
+# Create project directory
+sudo mkdir -p /var/www/html
+cd /var/www/html
+
+# Clone repository
+git clone <your-repo-url> .
+
+# Install dependencies
+npm install
+
+# Build the frontend
+npm run build
+
+# Create uploads directory
+sudo mkdir -p uploads
+sudo chown -R $USER:$USER uploads
+```
+
+3. Configure Nginx:
+```bash
+# Copy nginx config
+sudo cp nginx.conf /etc/nginx/sites-available/default
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+4. Set up SSL (recommended):
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d your-domain.com
+```
+
+5. Start the application:
+```bash
+npm run pm2:start
+```
+
+### Security Considerations
+
+1. Firewall Setup:
+```bash
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
+sudo ufw enable
+```
+
+2. File Permissions:
+```bash
+sudo chown -R $USER:$USER /var/www/html
+sudo chmod -R 755 /var/www/html
+```
+
+3. Environment Variables:
+- Use strong secrets for API tokens
+- Configure proper database credentials
+- Set NODE_ENV to 'production'
+
+4. Database Backups:
+- Set up regular database backups
+- Store backups in a secure location
+- Test backup restoration regularly
 
 ## API Documentation
 
@@ -171,15 +275,22 @@ npm install @prisma/client@5.14.0 prisma@5.14.0
 npx prisma generate
 ```
 
-## Future Extensions
+### Common Production Issues
 
-The application is designed to be extensible for future enhancements:
-- User authentication and authorization
-- Role-based access control
-- Cloud storage integration for images
-- Report templating and PDF generation
-- Mobile application integration
-- Notification system for report status changes
+1. Permission Errors:
+- Check file ownership and permissions
+- Ensure uploads directory is writable
+- Verify Nginx user permissions
+
+2. Database Connection:
+- Verify database credentials
+- Check network connectivity
+- Ensure database service is running
+
+3. PM2 Issues:
+- Check logs: `pm2 logs`
+- Monitor status: `pm2 status`
+- Restart if needed: `pm2 restart all`
 
 ## License
 
