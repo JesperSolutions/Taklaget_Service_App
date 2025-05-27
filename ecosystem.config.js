@@ -1,13 +1,7 @@
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-export default {
+module.exports = {
   apps: [{
     name: 'roof-inspection-api',
-    script: './src/server.js',
+    script: 'src/server.js',
     instances: 'max',
     exec_mode: 'cluster',
     autorestart: true,
@@ -16,6 +10,7 @@ export default {
     env_production: {
       NODE_ENV: 'production',
       PORT: 3000
-    }
+    },
+    node_args: '--experimental-specifier-resolution=node'
   }]
 };
