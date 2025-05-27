@@ -5,9 +5,14 @@ set -e
 
 echo "🚀 Setting up Roof Inspection Application..."
 
+# Create logs directory for PM2 and Nginx
+echo "📁 Creating log directories..."
+sudo mkdir -p /var/log/nginx
+mkdir -p logs
+
 # Update system and install dependencies
 echo "📦 Installing system dependencies..."
-sudo apt update
+sudo apt update && sudo apt upgrade -y
 sudo apt install -y nodejs npm nginx
 
 # Install PM2 globally
@@ -32,6 +37,10 @@ npx prisma generate
 echo "🗃️ Running database migrations..."
 npx prisma migrate deploy
 
+# Seed the database
+echo "🌱 Seeding database..."
+npm run seed
+
 # Build the frontend
 echo "🏗️ Building frontend..."
 npm run build
@@ -41,8 +50,24 @@ echo "⚙️ Configuring Nginx..."
 sudo cp nginx.conf /etc/nginx/sites-available/default
 sudo nginx -t && sudo systemctl restart nginx
 
+# Open required ports
+echo "🔓 Configuring firewall..."
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
+sudo ufw allow 3000/tcp
+sudo ufw --force enable
+
+# Set correct permissions
+echo "📝 Setting permissions..."
+sudo chown -R www-data:www-data /var/www/html/dist
+sudo chown -R www-data:www-data /var/www/html/uploads
+sudo chmod -R 755 /var/www/html/dist
+sudo chmod -R 755 /var/www/html/uploads
+
 # Start the application with PM2
 echo "🚀 Starting application..."
+pm2 delete roof-inspection-api 2>/dev/null || true
 pm2 start ecosystem.config.js --env production
 
 # Save PM2 process list and configure startup
@@ -54,4 +79,10 @@ echo "⚡ Configuring PM2 startup..."
 sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u $USER --hp /home/$USER
 
 echo "✅ Setup complete! The application should now be running."
-echo "🌐 You can access it at: http://your-server-ip"
+echo "🌐 You can access it at: http://164.92.176.50"
+echo ""
+echo "To check status:"
+echo "- Backend API: curl http://164.92.176.50/api-docs"
+echo "- PM2 status: pm2 status"
+echo "- Nginx logs: sudo tail -f /var/log/nginx/app-error.log"
+echo "- App logs: pm2 logs roof-inspection-api"
