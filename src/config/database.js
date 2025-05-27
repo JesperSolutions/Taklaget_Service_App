@@ -1,8 +1,10 @@
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import { PrismaClient } from '@prisma/client';
 
 // Create a singleton instance of PrismaClient
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+  errorFormat: 'pretty',
+});
 
 // Handle connection events
 prisma.$on('query', (e) => {
@@ -13,7 +15,8 @@ prisma.$on('query', (e) => {
   }
 });
 
-process.on('exit', async () => {
+// Handle graceful shutdown
+process.on('beforeExit', async () => {
   await prisma.$disconnect();
 });
 

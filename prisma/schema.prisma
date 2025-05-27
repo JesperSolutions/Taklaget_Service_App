@@ -34,6 +34,21 @@ model Company {
   departments  Department[]
   inspectors   Inspector[]
   reports      Report[]
+  users        AuthUser[]
+}
+
+// Authentication users
+model AuthUser {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  role          String    @default("employee")
+  company       Company   @relation(fields: [companyId], references: [id])
+  companyId     String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("auth_users")
 }
 
 // Department within a company
@@ -87,7 +102,7 @@ model Report {
   reportCode    String         @unique
   inspectionDate DateTime
   notes         String?
-  status        String         @default("DRAFT")
+  status        String         @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED
   inspector     Inspector      @relation(fields: [inspectorId], references: [id])
   inspectorId   String
   company       Company        @relation(fields: [companyId], references: [id])
@@ -98,18 +113,33 @@ model Report {
   customerId    String
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  images        ReportImage[]
+  findings      Finding[]
 }
 
-// Images attached to a report
+// Images attached to a finding
 model ReportImage {
-  id        String    @id @default(uuid())
-  filename  String
-  path      String
-  mimetype  String
-  size      Int
-  report    Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  reportId  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  filename    String
+  path        String
+  mimetype    String
+  size        Int
+  comment     String?
+  severity    String?   // LOW, MEDIUM, HIGH, CRITICAL
+  finding     Finding   @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  findingId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Inspection findings
+model Finding {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  severity    String        // LOW, MEDIUM, HIGH, CRITICAL
+  report      Report        @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId    String
+  images      ReportImage[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }

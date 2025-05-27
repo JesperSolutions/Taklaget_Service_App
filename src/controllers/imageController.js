@@ -6,23 +6,26 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 
 const prisma = new PrismaClient();
 
-// Upload images to a report
+// Upload images to a finding
 export const uploadImages = asyncHandler(async (req, res) => {
-  const { reportId } = req.params;
+  const { findingId } = req.params;
   const companyId = req.company.id;
+  const { comment, severity } = req.body;
   
-  // Check if report exists and belongs to the company
-  const report = await prisma.report.findFirst({
+  // Check if finding exists and belongs to the company
+  const finding = await prisma.finding.findFirst({
     where: {
-      id: reportId,
-      companyId,
+      id: findingId,
+      report: {
+        companyId,
+      },
     },
   });
   
-  if (!report) {
+  if (!finding) {
     return res.status(404).json({
       success: false,
-      message: 'Report not found',
+      message: 'Finding not found',
     });
   }
   
@@ -45,7 +48,9 @@ export const uploadImages = asyncHandler(async (req, res) => {
           path: file.path,
           mimetype: file.mimetype,
           size: file.size,
-          reportId,
+          comment,
+          severity,
+          findingId,
         },
       });
       
@@ -63,58 +68,20 @@ export const uploadImages = asyncHandler(async (req, res) => {
   });
 });
 
-// Get all images for a report
-export const getReportImages = asyncHandler(async (req, res) => {
-  const { reportId } = req.params;
-  const companyId = req.company.id;
-  
-  // Check if report exists and belongs to the company
-  const report = await prisma.report.findFirst({
-    where: {
-      id: reportId,
-      companyId,
-    },
-  });
-  
-  if (!report) {
-    return res.status(404).json({
-      success: false,
-      message: 'Report not found',
-    });
-  }
-  
-  // Get images
-  const images = await prisma.reportImage.findMany({
-    where: { reportId },
-  });
-  
-  // Transform image paths to URLs
-  const imagesWithUrls = images.map(image => ({
-    ...image,
-    url: `/uploads/${path.basename(image.path)}`,
-  }));
-  
-  res.status(200).json({
-    success: true,
-    data: imagesWithUrls,
-  });
-});
-
 // Delete an image
 export const deleteImage = asyncHandler(async (req, res) => {
   const { imageId } = req.params;
   const companyId = req.company.id;
   
-  // Find image and check if it belongs to a report owned by the company
+  // Find image and check if it belongs to a finding in a report owned by the company
   const image = await prisma.reportImage.findFirst({
     where: {
       id: imageId,
-      report: {
-        companyId,
+      finding: {
+        report: {
+          companyId,
+        },
       },
-    },
-    include: {
-      report: true,
     },
   });
   

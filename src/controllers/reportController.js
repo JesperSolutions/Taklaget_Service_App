@@ -36,11 +36,9 @@ export const getReports = asyncHandler(async (req, res) => {
             zipCode: true,
           },
         },
-        images: {
-          select: {
-            id: true,
-            filename: true,
-            path: true,
+        findings: {
+          include: {
+            images: true,
           },
         },
       },
@@ -54,9 +52,12 @@ export const getReports = asyncHandler(async (req, res) => {
   // Transform image paths to URLs
   const reportsWithImageUrls = reports.map(report => ({
     ...report,
-    images: report.images.map(image => ({
-      ...image,
-      url: `/uploads/${path.basename(image.path)}`,
+    findings: report.findings.map(finding => ({
+      ...finding,
+      images: finding.images.map(image => ({
+        ...image,
+        url: `/uploads/${path.basename(image.path)}`,
+      })),
     })),
   }));
   
@@ -88,7 +89,11 @@ export const getReportById = asyncHandler(async (req, res) => {
       inspector: true,
       department: true,
       customer: true,
-      images: true,
+      findings: {
+        include: {
+          images: true,
+        },
+      },
     },
   });
   
@@ -102,53 +107,12 @@ export const getReportById = asyncHandler(async (req, res) => {
   // Transform image paths to URLs
   const reportWithImageUrls = {
     ...report,
-    images: report.images.map(image => ({
-      ...image,
-      url: `/uploads/${path.basename(image.path)}`,
-    })),
-  };
-  
-  res.status(200).json({
-    success: true,
-    data: reportWithImageUrls,
-  });
-});
-
-// Get report by code
-export const getReportByCode = asyncHandler(async (req, res) => {
-  const { code } = req.params;
-  
-  const report = await prisma.report.findUnique({
-    where: { reportCode: code },
-    include: {
-      inspector: true,
-      department: true,
-      customer: true,
-      images: true,
-    },
-  });
-  
-  if (!report) {
-    return res.status(404).json({
-      success: false,
-      message: 'Report not found',
-    });
-  }
-  
-  // Check if user has access to this report
-  if (report.companyId !== req.company.id) {
-    return res.status(403).json({
-      success: false,
-      message: 'Access denied',
-    });
-  }
-  
-  // Transform image paths to URLs
-  const reportWithImageUrls = {
-    ...report,
-    images: report.images.map(image => ({
-      ...image,
-      url: `/uploads/${path.basename(image.path)}`,
+    findings: report.findings.map(finding => ({
+      ...finding,
+      images: finding.images.map(image => ({
+        ...image,
+        url: `/uploads/${path.basename(image.path)}`,
+      })),
     })),
   };
   
@@ -255,6 +219,7 @@ export const createReport = asyncHandler(async (req, res) => {
         inspector: true,
         department: true,
         customer: true,
+        findings: true,
       },
     });
     
@@ -329,7 +294,11 @@ export const updateReport = asyncHandler(async (req, res) => {
         inspector: true,
         department: true,
         customer: true,
-        images: true,
+        findings: {
+          include: {
+            images: true,
+          },
+        },
       },
     });
     
@@ -339,9 +308,12 @@ export const updateReport = asyncHandler(async (req, res) => {
   // Transform image paths to URLs
   const reportWithImageUrls = {
     ...result,
-    images: result.images.map(image => ({
-      ...image,
-      url: `/uploads/${path.basename(image.path)}`,
+    findings: result.findings.map(finding => ({
+      ...finding,
+      images: finding.images.map(image => ({
+        ...image,
+        url: `/uploads/${path.basename(image.path)}`,
+      })),
     })),
   };
   
@@ -372,7 +344,7 @@ export const deleteReport = asyncHandler(async (req, res) => {
     });
   }
   
-  // Delete report (cascade will delete images)
+  // Delete report (cascade will delete findings and images)
   await prisma.report.delete({
     where: { id },
   });
