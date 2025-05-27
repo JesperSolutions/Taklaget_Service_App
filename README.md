@@ -25,52 +25,29 @@ This project requires specific versions of Prisma to ensure stability:
 - @prisma/client: 5.14.0
 - prisma: 5.14.0
 
-## Installation
+## Quick Start
 
-1. Clone the repository
-
+1. Clone the repository and install dependencies:
 ```bash
 git clone https://github.com/your-username/roof-inspection-api.git
 cd roof-inspection-api
-```
-
-2. Install dependencies
-
-```bash
 npm install
 ```
 
-3. Set up environment variables
-
+2. Set up environment:
 ```bash
 cp .env.example .env
 ```
-
 Edit the `.env` file to configure your database and other settings.
 
-4. Generate Prisma client
-
+3. Initialize database:
 ```bash
-npm run db:generate
+npm run db:generate  # Generate Prisma client
+npm run db:migrate   # Run migrations
+npm run seed        # Seed sample data
 ```
 
-5. Run database migrations
-
-```bash
-npm run db:migrate
-```
-
-6. Seed the database with sample data
-
-```bash
-npm run seed
-```
-
-## Running the Application
-
-### Development Mode
-
-Start the backend API:
+4. Start development servers:
 ```bash
 npm run dev
 ```
@@ -79,23 +56,6 @@ The application will be available at:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:3000
 - API Documentation: http://localhost:3000/api-docs
-
-### Production Mode
-
-1. Build the frontend:
-```bash
-npm run build
-```
-
-2. Start with PM2:
-```bash
-npm run pm2:start
-```
-
-To stop the application:
-```bash
-npm run pm2:stop
-```
 
 ## Production Deployment
 
@@ -107,7 +67,24 @@ npm run pm2:stop
 - PM2 (installed globally)
 - Let's Encrypt SSL (recommended)
 
-### Deployment Steps
+### Automated Setup
+
+Run the setup script:
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+The script will:
+1. Update system packages
+2. Install Node.js, Nginx, and PM2
+3. Configure project directories and permissions
+4. Set up the database
+5. Build the frontend
+6. Configure Nginx
+7. Start the application with PM2
+
+### Manual Setup Steps
 
 1. Install required software:
 ```bash
@@ -125,7 +102,7 @@ sudo apt install -y nginx
 sudo npm install -g pm2
 ```
 
-2. Set up the project:
+2. Set up project:
 ```bash
 # Create project directory
 sudo mkdir -p /var/www/html
@@ -145,7 +122,17 @@ sudo mkdir -p uploads
 sudo chown -R $USER:$USER uploads
 ```
 
-3. Configure Nginx:
+3. Configure firewall:
+```bash
+# Allow HTTP, HTTPS, SSH and API ports
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
+sudo ufw allow 3000/tcp  # Required for direct API access
+sudo ufw enable
+```
+
+4. Configure Nginx:
 ```bash
 # Copy nginx config
 sudo cp nginx.conf /etc/nginx/sites-available/default
@@ -153,69 +140,115 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-4. Set up SSL (recommended):
+5. Set up SSL (recommended):
 ```bash
 sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d your-domain.com
 ```
 
-5. Start the application:
+6. Start application:
 ```bash
 npm run pm2:start
 ```
 
 ### Security Considerations
 
-1. Firewall Setup:
-```bash
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 22/tcp
-sudo ufw enable
-```
-
-2. File Permissions:
+1. File Permissions:
 ```bash
 sudo chown -R $USER:$USER /var/www/html
 sudo chmod -R 755 /var/www/html
 ```
 
-3. Environment Variables:
+2. Environment Variables:
 - Use strong secrets for API tokens
 - Configure proper database credentials
 - Set NODE_ENV to 'production'
 
-4. Database Backups:
+3. Database Backups:
 - Set up regular database backups
 - Store backups in a secure location
 - Test backup restoration regularly
+
+## Troubleshooting
+
+### Common Issues
+
+1. Port 3000 already in use:
+```bash
+# Check what's using port 3000
+sudo lsof -i :3000
+
+# Kill the process if needed
+sudo kill <PID>
+```
+
+2. PM2 Issues:
+```bash
+# View logs
+pm2 logs
+
+# Check status
+pm2 status
+
+# Restart application
+pm2 restart all
+```
+
+3. Nginx Issues:
+```bash
+# Check nginx error logs
+sudo tail -f /var/log/nginx/error.log
+
+# Test nginx config
+sudo nginx -t
+
+# Restart nginx
+sudo systemctl restart nginx
+```
+
+4. Permission Issues:
+```bash
+# Fix uploads directory permissions
+sudo chown -R www-data:www-data uploads/
+sudo chmod -R 755 uploads/
+
+# Fix nginx access
+sudo chown -R www-data:www-data /var/www/html/dist
+```
+
+5. Database Connection:
+- Verify credentials in .env
+- Check database service status
+- Ensure database port is accessible
+
+### Prisma Issues
+
+If you encounter Prisma-related errors:
+
+1. Ensure correct versions:
+```bash
+npm install @prisma/client@5.14.0 prisma@5.14.0
+```
+
+2. Regenerate client:
+```bash
+npx prisma generate
+```
 
 ## API Documentation
 
 Access the Swagger documentation at:
 ```
-http://localhost:3000/api-docs
-```
-
-## Database Management
-
-- View and manage database using Prisma Studio:
-```bash
-npm run db:studio
-```
-
-- Create new migrations after schema changes:
-```bash
-npm run db:migrate
+http://your-domain.com/api-docs
 ```
 
 ## API Authentication
 
-All API endpoints require an API token to be included in the `x-api-token` header.
+All API endpoints require an API token in the `x-api-token` header.
 
 Format: `companyCode:inspectorCode`
 
-For development, use one of these demo tokens:
+Demo tokens:
 - `ABC:INS-001-ABC` - ABC Roofing company with Inspector John Doe
 - `XYZ:INS-001-XYZ` - XYZ Contractors company with Inspector John Doe
 
@@ -260,37 +293,6 @@ For development, use one of these demo tokens:
 - `GET /api/v1/company` - Get company information
 - `GET /api/v1/company/inspectors` - Get all inspectors for the company
 - `GET /api/v1/company/departments` - Get all departments for the company
-
-## Troubleshooting
-
-If you encounter Prisma-related errors:
-
-1. Ensure you're using the correct Prisma versions:
-```bash
-npm install @prisma/client@5.14.0 prisma@5.14.0
-```
-
-2. Regenerate the Prisma client:
-```bash
-npx prisma generate
-```
-
-### Common Production Issues
-
-1. Permission Errors:
-- Check file ownership and permissions
-- Ensure uploads directory is writable
-- Verify Nginx user permissions
-
-2. Database Connection:
-- Verify database credentials
-- Check network connectivity
-- Ensure database service is running
-
-3. PM2 Issues:
-- Check logs: `pm2 logs`
-- Monitor status: `pm2 status`
-- Restart if needed: `pm2 restart all`
 
 ## License
 
