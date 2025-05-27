@@ -1,7 +1,7 @@
-module.exports = {
+export default {
   apps: [{
     name: 'roof-inspection-api',
-    script: 'src/server.js',
+    script: './src/server.js',
     instances: 'max',
     exec_mode: 'cluster',
     autorestart: true,
