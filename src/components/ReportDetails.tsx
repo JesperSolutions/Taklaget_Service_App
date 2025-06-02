@@ -1,7 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Building2, Calendar, User, MapPin, Phone, Mail, FileText, Loader2, AlertTriangle, Image as ImageIcon, X, Trash2, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
+import debounce from 'lodash/debounce';
+
+interface Checklist {
+  id: string;
+  accessConditions: string;
+  accessComments?: string;
+  fallProtection: string;
+  fallProtectionComments?: string;
+  existingRoofMaterial?: string;
+  roofAge?: number;
+  roofArea?: number;
+  technicalExecution?: string;
+  welds?: string;
+  drainage?: string;
+  edgesAndCrowns?: string;
+  skylights?: string;
+  technicalInstallations?: string;
+  insulationType?: string;
+  greenRoof?: string;
+  solarPanels?: string;
+  noxTreatment: string;
+  rainwaterCollection: string;
+  recreationalAreas: string;
+}
 
 interface Report {
   id: string;
@@ -9,6 +33,7 @@ interface Report {
   inspectionDate: string;
   notes: string;
   status: string;
+  checklist?: Checklist;
   inspector: {
     name: string;
     email: string;
@@ -46,6 +71,31 @@ interface Finding {
   severity: string;
 }
 
+const STATUS_OPTIONS = {
+  IKKE_RELEVANT: 'Ikke relevant',
+  IKKE_ETABLERET: 'Ikke etableret',
+  ETABLERET: 'Etableret'
+} as const;
+
+const CHECKLIST_ITEMS = [
+  { key: 'accessConditions', label: 'Adgangsforhold', hasStatus: true, hasComments: true, commentKey: 'accessComments' },
+  { key: 'fallProtection', label: 'Faldsikring / rækværk', hasStatus: true, hasComments: true, commentKey: 'fallProtectionComments' },
+  { key: 'existingRoofMaterial', label: 'Eksisterende tag materiale', hasComments: true },
+  { key: 'roofAge', label: 'Alder på eksisterende tag materiale', type: 'number' },
+  { key: 'technicalExecution', label: 'Tekniske udførelse', hasComments: true },
+  { key: 'welds', label: 'Svejsninger', hasComments: true },
+  { key: 'drainage', label: 'Afløb', hasComments: true },
+  { key: 'edgesAndCrowns', label: 'Opkanter og murkroner', hasComments: true },
+  { key: 'skylights', label: 'Ovenlys', hasComments: true },
+  { key: 'technicalInstallations', label: 'Tekniske installationer', hasComments: true },
+  { key: 'insulationType', label: 'Vurdering af isoleringstype', hasComments: true },
+  { key: 'greenRoof', label: 'Grønt tag', hasComments: true },
+  { key: 'solarPanels', label: 'Solceller', hasComments: true },
+  { key: 'noxTreatment', label: 'NOx reducerende behandling', hasStatus: true },
+  { key: 'rainwaterCollection', label: 'Regnvandsopsamling', hasStatus: true },
+  { key: 'recreationalAreas', label: 'Rekreative områder', hasStatus: true }
+];
+
 function ReportDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -60,6 +110,48 @@ function ReportDetails() {
   const [showFindingForm, setShowFindingForm] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [checklist, setChecklist] = useState<Checklist | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const debouncedSave = useCallback(
+    debounce(async (data: Partial<Checklist>) => {
+      if (!id) return;
+
+      try {
+        const response = await fetch(`/api/v1/reports/${id}/checklist`, {
+          method: checklist ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-token': 'ABC:INS-001-ABC',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save checklist');
+        }
+
+        const result = await response.json();
+        setChecklist(result.data);
+        setHasUnsavedChanges(false);
+      } catch (error) {
+        console.error('Error saving checklist:', error);
+      }
+    }, 1000),
+    [id, checklist]
+  );
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     if (id) {
@@ -81,12 +173,31 @@ function ReportDetails() {
 
       const data = await response.json();
       setReport(data.data);
+      setChecklist(data.data.checklist || null);
     } catch (error) {
       toast.error('Failed to load report');
       navigate('/');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChecklistChange = (field: keyof Checklist, value: string | number) => {
+    if (!report) return;
+
+    const updatedChecklist = {
+      ...checklist,
+      [field]: value,
+      accessConditions: checklist?.accessConditions || 'IKKE_RELEVANT',
+      fallProtection: checklist?.fallProtection || 'IKKE_RELEVANT',
+      noxTreatment: checklist?.noxTreatment || 'IKKE_RELEVANT',
+      rainwaterCollection: checklist?.rainwaterCollection || 'IKKE_RELEVANT',
+      recreationalAreas: checklist?.recreationalAreas || 'IKKE_RELEVANT',
+    };
+
+    setChecklist(updatedChecklist);
+    setHasUnsavedChanges(true);
+    debouncedSave(updatedChecklist);
   };
 
   const handleAddFinding = async () => {
@@ -343,6 +454,85 @@ function ReportDetails() {
                   </dd>
                 </div>
               </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 bg-white shadow sm:rounded-lg">
+        <div className="px-4 py-5 sm:p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium leading-6 text-gray-900">Inspection Checklist</h3>
+            {hasUnsavedChanges && (
+              <span className="text-sm text-gray-500">
+                Saving changes...
+              </span>
+            )}
+          </div>
+          <div className="mt-5 border-t border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Item
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status / Value
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Comments
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {CHECKLIST_ITEMS.map((item) => (
+                    <tr key={item.key}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {item.label}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {item.hasStatus ? (
+                          <select
+                            value={checklist?.[item.key as keyof Checklist] || 'IKKE_RELEVANT'}
+                            onChange={(e) => handleChecklistChange(item.key as keyof Checklist, e.target.value)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          >
+                            {Object.entries(STATUS_OPTIONS).map(([value, label]) => (
+                              <option key={value} value={value}>{label}</option>
+                            ))}
+                          </select>
+                        ) : item.type === 'number' ? (
+                          <input
+                            type="number"
+                            value={checklist?.[item.key as keyof Checklist] || ''}
+                            onChange={(e) => handleChecklistChange(item.key as keyof Checklist, Number(e.target.value) || 0)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            value={checklist?.[item.key as keyof Checklist] || ''}
+                            onChange={(e) => handleChecklistChange(item.key as keyof Checklist, e.target.value)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {item.hasComments && (
+                          <input
+                            type="text"
+                            value={checklist?.[item.commentKey as keyof Checklist] || ''}
+                            onChange={(e) => handleChecklistChange(item.commentKey as keyof Checklist, e.target.value)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            placeholder="Add comments..."
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

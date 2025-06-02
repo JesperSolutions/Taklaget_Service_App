@@ -354,3 +354,65 @@ export const deleteReport = asyncHandler(async (req, res) => {
     message: 'Report deleted successfully',
   });
 });
+
+// Create or update checklist
+export const updateChecklist = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const checklistData = req.body;
+  const companyId = req.company.id;
+
+  // Check if report exists and belongs to the company
+  const report = await prisma.report.findFirst({
+    where: {
+      id,
+      companyId,
+    },
+    include: {
+      checklist: true,
+    },
+  });
+
+  if (!report) {
+    return res.status(404).json({
+      success: false,
+      message: 'Report not found',
+    });
+  }
+
+  // Ensure all required fields are present
+  const requiredFields = {
+    accessConditions: checklistData.accessConditions || 'IKKE_RELEVANT',
+    fallProtection: checklistData.fallProtection || 'IKKE_RELEVANT',
+    noxTreatment: checklistData.noxTreatment || 'IKKE_RELEVANT',
+    rainwaterCollection: checklistData.rainwaterCollection || 'IKKE_RELEVANT',
+    recreationalAreas: checklistData.recreationalAreas || 'IKKE_RELEVANT',
+  };
+
+  const data = {
+    ...checklistData,
+    ...requiredFields,
+  };
+
+  let checklist;
+  if (report.checklist) {
+    // Update existing checklist
+    checklist = await prisma.checklist.update({
+      where: { reportId: id },
+      data,
+    });
+  } else {
+    // Create new checklist
+    checklist = await prisma.checklist.create({
+      data: {
+        ...data,
+        reportId: id,
+      },
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    data: checklist,
+    message: 'Checklist updated successfully',
+  });
+});

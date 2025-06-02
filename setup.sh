@@ -15,6 +15,16 @@ echo "📦 Installing system dependencies..."
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y nodejs npm nginx
 
+# Create swap file if less than 1GB memory available
+if [ $(free -m | awk '/^Mem:/{print $2}') -lt 1024 ]; then
+    echo "💾 Creating swap file for low memory system..."
+    sudo fallocate -l 1G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
+
 # Install PM2 globally
 echo "📦 Installing PM2..."
 sudo npm install -g pm2
@@ -23,11 +33,11 @@ sudo npm install -g pm2
 echo "📁 Creating directories..."
 sudo mkdir -p /var/www/html/uploads
 sudo chown -R $USER:$USER /var/www/html
-sudo chmod -R 755 /var/www/html
 
-# Install project dependencies
+# Install project dependencies with increased memory limit
 echo "📦 Installing project dependencies..."
-npm install
+export NODE_OPTIONS="--max-old-space-size=512"
+npm install --no-audit --no-fund
 
 # Generate Prisma client
 echo "🔄 Generating Prisma client..."

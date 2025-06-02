@@ -5,6 +5,7 @@ import {
   createReport,
   updateReport,
   deleteReport,
+  updateChecklist,
 } from '../../controllers/reportController.js';
 import {
   createFinding,
@@ -24,6 +25,10 @@ router.get('/:id', getReportById);
 router.post('/', createReport);
 router.put('/:id', updateReport);
 router.delete('/:id', deleteReport);
+
+// Checklist routes
+router.post('/:id/checklist', updateChecklist);
+router.put('/:id/checklist', updateChecklist);
 
 // Finding routes
 router.post('/:reportId/findings', createFinding);

@@ -111,9 +111,38 @@ model Report {
   departmentId  String
   customer      Customer       @relation(fields: [customerId], references: [id])
   customerId    String
+  checklist     Checklist?    // One-to-one relation with checklist
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   findings      Finding[]
+}
+
+// Checklist for standardized inspection items
+model Checklist {
+  id                      String   @id @default(uuid())
+  report                  Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId                String   @unique
+  accessConditions        String   // IKKE_RELEVANT, IKKE_ETABLERET, ETABLERET
+  accessComments         String?
+  fallProtection         String   // IKKE_RELEVANT, IKKE_ETABLERET, ETABLERET
+  fallProtectionComments String?
+  existingRoofMaterial   String?
+  roofAge               Int?
+  roofArea              Float?    // in square meters
+  technicalExecution    String?
+  welds                 String?
+  drainage              String?
+  edgesAndCrowns        String?
+  skylights             String?
+  technicalInstallations String?
+  insulationType        String?
+  greenRoof             String?
+  solarPanels           String?
+  noxTreatment          String   // IKKE_RELEVANT, IKKE_ETABLERET, ETABLERET
+  rainwaterCollection   String   // IKKE_RELEVANT, IKKE_ETABLERET, ETABLERET
+  recreationalAreas     String   // IKKE_RELEVANT, IKKE_ETABLERET, ETABLERET
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 // Images attached to a finding
